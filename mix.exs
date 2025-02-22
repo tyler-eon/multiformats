@@ -6,19 +6,22 @@ defmodule Multiformats.MixProject do
       app: :multiformats,
       version: "0.1.0",
       elixir: "~> 1.18",
-      start_permanent: Mix.env() == :prod,
+      description: "A collection of Elixir modules for working with the multiformats ecosystem.",
+      package: package(),
       deps: deps()
     ]
   end
 
-  # Run "mix help compile.app" to learn about applications.
-  def application do
+  def package do
     [
-      extra_applications: [:logger]
+      maintainers: ["Tyler Eon"],
+      licenses: ["MIT"],
+      links: %{
+        "GitHub" => "https://github.com/tyler-eon/multiformats"
+      }
     ]
   end
 
-  # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
       {:varint, "~> 1.4"}
