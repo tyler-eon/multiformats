@@ -24,7 +24,8 @@ defmodule Multiformats.MixProject do
 
   defp deps do
     [
-      {:varint, "~> 1.4"}
+      {:varint, "~> 1.4"},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
 end
