@@ -1,0 +1,81 @@
+defmodule Multiformats.Multicodec do
+  @moduledoc """
+  The primary module for fetching multicodec metadata.
+
+  Data *should be* generated from [this source table](https://github.com/multiformats/multicodec/blob/master/table.csv). However, the task to generate this source file accepts any appropriately-formatted CSV file, allowing for custom codecs to be used if desired.
+  """
+
+  @doc """
+  Encodes binary data using a codec. The codec can either be the name of the codec or the numeric representation of the codec. A numeric representation is either an integer, e.g. a codepoint or hex value, or a bitstring.
+  """
+  @spec encode(binary(), integer() | binary()) :: {:ok, binary()} | :error
+  def encode(data, codec) when is_binary(data) do
+    case get(codec) do
+      nil -> :error
+      # Note: The prefix in the metadata is already encoded as a varint (LEB128).
+      # For this reason, we do not need to encode the prefix again and can use it as-is.
+      %{prefix: prefix} -> {:ok, prefix <> data}
+    end
+  end
+
+  @doc """
+  Similar to `encode/2`, but raises an error if the codec is not supported.
+  """
+  @spec encode!(binary(), integer() | binary()) :: binary()
+  def encode!(data, codec) do
+    {:ok, result} = encode(data, codec)
+    result
+  end
+
+  @doc """
+  Decodes binary data into the codec *name* and the embedded data.
+
+  For example, if the binary data is prefixed with `<<22>>` then the codec name returned will be `"sha3-256"`.
+
+      # On a successful decode, the second element is a tuple containing the codec name and associated binary data.
+      {:ok, {"sha3-256", data}} = decode(<<22, ...>>)
+
+  Possible errors can occur from either an unknown codec, i.e. the prefix did not match any known codec, or the binary data was not properly varint-encoded.
+  """
+  @spec decode(binary()) :: {:ok, {String.t(), binary()}} | {:error, any()}
+  def decode(data) when is_binary(data) do
+    {prefix, data} = Varint.LEB128.decode(data)
+    case get(prefix) do
+      nil -> {:error, :unknown_codec}
+      %{name: codec} -> {:ok, {codec, data}}
+    end
+  rescue
+    _ -> {:error, :invalid_leb128_integer}
+  end
+
+
+  @doc """
+  Get a codec by either the integer/hex value or the human-readable name.
+
+  For example, `get(0)`, `get(0x00)`, and `get("identity")` will all return the same result.
+  """
+  @spec get(integer() | binary()) :: map() | nil
+  <%= for codec <- compendium do %><% "0x" <> code_hex = codec["code"] %>
+  def get(<%= codec["code"] %>), do: %{
+    code: <%= codec["code"] %>,
+    prefix: <%= code_hex |> Integer.parse(16) |> elem(0) |> Varint.LEB128.encode() |> inspect() %>,
+    name: "<%= codec["name"] %>",
+    description: "<%= codec["description"] %>",
+    status: "<%= codec["status"] %>",
+    tag: "<%= codec["tag"] %>"
+  }
+  def get("<%= codec["name"] %>"), do: get(<%= codec["code"] %>)
+  <% end %>
+  def get(_), do: nil
+
+  @doc """
+  Parse the codec prefix from a binary string. Returns a tuple in the form of `{codec_metadata, data}`. Will return `nil` if the prefix does not match any known codec.
+
+  This function uses the varint-encoded prefix for matching on the head of the binary data. This also means only properly-encoded binary data can be parsed, i.e. binary data that has the codec prefix varint-encoded.
+  """
+  @spec parse_prefix(binary()) :: {map(), binary()} | nil
+  <%= for codec <- compendium do %><% "0x" <> code_hex = codec["code"] %>
+  def parse_prefix(<%= code_hex |> Integer.parse(16) |> elem(0) |> Varint.LEB128.encode() |> inspect() %> <> rest), do: {get(<%= codec["code"] %>), rest}
+  <% end %>
+  def parse_prefix(_), do: nil
+end
