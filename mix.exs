@@ -14,6 +14,7 @@ defmodule Multiformats.MixProject do
 
   def package do
     [
+      name: "multiformats_ex",
       maintainers: ["Tyler Eon"],
       licenses: ["MIT"],
       links: %{
