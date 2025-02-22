@@ -3,8 +3,8 @@ defmodule Multiformats.MixProject do
 
   def project do
     [
-      app: :multiformats,
-      version: "0.1.0",
+      app: :multiformats_ex,
+      version: "0.2.0",
       elixir: "~> 1.18",
       description: "A collection of Elixir modules for working with the multiformats ecosystem.",
       package: package(),
